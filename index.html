@@ -3,743 +3,341 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MiMoFont — AI Typography Critic</title>
-<meta name="description" content="Upload screenshot or paste URL → detect fonts → get readability score, pairing harmony, accessibility audit, and AI-rewritten alternatives. Powered by Xiaomi MiMo V2.5.">
+<title>MiMoFont - AI Typography Critic</title>
+<meta name="description" content="AI Typography Critic - Upload screenshot or paste URL. Powered by Xiaomi MiMo V2.5.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;600&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-/* ═══════════════════════════════════════════════════════════
-   MiMoFont — AI Typography Critic & Font Pairing Advisor
-   Aesthetic A: Geist + warm gradient (premium AI-native)
-   ═══════════════════════════════════════════════════════════ */
 :root {
-  --bg: #06080f; --panel: #0c0e16; --panel2: #12141e; --panel3: #181a26;
-  --text: #f0f0f8; --muted: #8a8aa4;
-  --acc: #ff6b35; --acc2: #8b5cf6; --acc3: #3b82f6;
-  --good: #00d68f; --warn: #ffb800; --bad: #ff4d6d;
+  --bg: #08111f; --panel: #0c1829; --panel2: #111f33; --panel3: #162640;
+  --text: #f0f2f8; --muted: #8a9ab5;
+  --gold: #f0d78c; --gold-deep: #c4a84e;
+  --hydro: #4fc3f7; --hydro-deep: #0288d1;
+  --acc: #ff6b35; --good: #00d68f; --warn: #ffb800; --bad: #ff4d6d;
   --line: rgba(255,255,255,.06); --line2: rgba(255,255,255,.12);
-  --glass: rgba(12,14,22,.8);
-  --grad-mimo: linear-gradient(135deg, #ff6b35, #ff3d0a, #8b5cf6, #3b82f6);
+  --glass: rgba(8,17,31,.82);
   --radius: 12px; --radius-sm: 8px;
 }
 [data-theme="light"] {
-  --bg: #f8f7f4; --panel: #ffffff; --panel2: #f2f0eb; --panel3: #e8e5de;
-  --text: #0a0a14; --muted: #555568;
-  --acc: #c04a18; --acc2: #6d28d9; --acc3: #1d4ed8;
+  --bg: #f5f3ee; --panel: #ffffff; --panel2: #f0ede6; --panel3: #e8e4db;
+  --text: #0a0a14; --muted: #5a6a7a;
+  --gold: #8b6914; --gold-deep: #6b4f0a;
+  --hydro: #0277bd; --hydro-deep: #01579b;
   --line: rgba(0,0,0,.07); --line2: rgba(0,0,0,.14);
-  --glass: rgba(255,255,255,.85);
+  --glass: rgba(255,255,255,.88);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{
-  font-family:'Inter',system-ui,sans-serif;
-  background:var(--bg);color:var(--text);
-  min-height:100vh;overflow-x:hidden;
-  line-height:1.6;
-}
-.container{max-width:1080px;margin:0 auto;padding:0 20px;width:100%}
-
-/* ─── Animated Background ─── */
-.bg-mesh{position:fixed;inset:0;z-index:-1;overflow:hidden}
-.bg-mesh::before{
-  content:'';position:absolute;width:150%;height:150%;top:-25%;left:-25%;
-  background:radial-gradient(ellipse at 20% 50%,rgba(255,107,53,.08) 0%,transparent 50%),
-             radial-gradient(ellipse at 80% 20%,rgba(139,92,246,.06) 0%,transparent 50%),
-             radial-gradient(ellipse at 50% 80%,rgba(59,130,246,.05) 0%,transparent 50%);
-  animation:meshDrift 20s ease-in-out infinite alternate;
-}
-@keyframes meshDrift{0%{transform:translate(0,0) rotate(0)}100%{transform:translate(3%,2%) rotate(3deg)}}
-
-/* ─── Nav ─── */
-nav{
-  position:sticky;top:0;z-index:100;
-  background:var(--glass);backdrop-filter:blur(20px) saturate(1.4);
-  border-bottom:1px solid var(--line);
-  padding:12px 0;
-}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;line-height:1.6}
+.container{max-width:1100px;margin:0 auto;padding:0 20px;width:100%}
+.bg-ocean{position:fixed;inset:0;z-index:-1;overflow:hidden;background:radial-gradient(ellipse at 30% 20%,rgba(79,199,247,.06) 0%,transparent 50%),radial-gradient(ellipse at 70% 80%,rgba(240,215,140,.04) 0%,transparent 50%),radial-gradient(ellipse at 50% 50%,rgba(2,136,209,.03) 0%,transparent 60%)}
+.bg-ocean::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(79,199,247,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(79,199,247,.03) 1px,transparent 1px);background-size:60px 60px;animation:gridDrift 30s linear infinite}
+@keyframes gridDrift{0%{transform:translate(0,0)}100%{transform:translate(60px,60px)}}
+.starfield{position:fixed;inset:0;z-index:-1;pointer-events:none}
+.star{position:absolute;width:2px;height:2px;border-radius:50%;animation:twinkle var(--dur) ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.2}50%{opacity:.8}}
+nav{position:sticky;top:0;z-index:100;background:var(--glass);backdrop-filter:blur(20px) saturate(1.4);border-bottom:1px solid var(--line);padding:14px 0}
 nav .container{display:flex;align-items:center;justify-content:space-between}
-.nav-brand{font-weight:800;font-size:1.25rem;display:flex;align-items:center;gap:8px}
-.nav-brand span{background:var(--grad-mimo);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-brand{font-family:'Cinzel',serif;font-weight:700;font-size:1.3rem;letter-spacing:.08em;color:var(--gold)}
 .nav-controls{display:flex;gap:8px;align-items:center}
-.btn-ghost{
-  background:transparent;border:1px solid var(--line2);color:var(--muted);
-  padding:6px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:.8rem;
-  transition:all .2s;
-}
-.btn-ghost:hover{border-color:var(--acc);color:var(--text)}
+.btn-ghost{background:transparent;border:1px solid var(--line2);color:var(--muted);padding:6px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:.8rem;transition:all .2s}
+.btn-ghost:hover{border-color:var(--hydro);color:var(--text)}
 .lang-toggle{display:flex;gap:2px;background:var(--panel2);border-radius:6px;padding:2px}
-.lang-toggle button{
-  background:transparent;border:none;color:var(--muted);padding:4px 10px;
-  border-radius:5px;cursor:pointer;font-size:.75rem;font-weight:600;transition:all .2s;
-}
-.lang-toggle button.active{background:var(--acc);color:#fff}
-
-/* ─── Hero ─── */
-.hero{text-align:center;padding:60px 0 40px}
-.hero-eyebrow{
-  display:inline-flex;align-items:center;gap:6px;
-  background:var(--panel2);border:1px solid var(--line);border-radius:20px;
-  padding:6px 16px;font-size:.75rem;color:var(--muted);margin-bottom:20px;
-  font-weight:500;letter-spacing:.03em;
-}
-.hero-eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--good);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.hero h1{
-  font-size:clamp(2rem,6vw,3.5rem);font-weight:900;line-height:1.1;margin-bottom:16px;
-  letter-spacing:-.03em;
-}
-.hero h1 .grad{background:var(--grad-mimo);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.hero p{color:var(--muted);font-size:clamp(.95rem,2vw,1.1rem);max-width:600px;margin:0 auto 28px}
-.pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-.pill{
-  background:var(--panel2);border:1px solid var(--line);border-radius:20px;
-  padding:6px 14px;font-size:.78rem;color:var(--muted);font-weight:500;
-}
-
-/* ─── Input Section ─── */
-.input-section{margin:0 auto 40px;max-width:720px}
-.input-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--panel);border-radius:var(--radius);padding:4px}
-.input-tab{
-  flex:1;padding:10px;text-align:center;border-radius:var(--radius-sm);
-  cursor:pointer;font-weight:600;font-size:.85rem;color:var(--muted);
-  border:none;background:transparent;transition:all .2s;
-}
-.input-tab.active{background:var(--acc);color:#fff}
-.input-card{
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-  padding:24px;position:relative;
-}
-.input-row{display:flex;gap:10px;align-items:stretch}
-.url-input{
-  flex:1;background:var(--panel2);border:1px solid var(--line2);border-radius:var(--radius-sm);
-  padding:14px 16px;color:var(--text);font-size:.95rem;font-family:inherit;
-  outline:none;transition:border-color .2s;
-}
-.url-input:focus{border-color:var(--acc)}
-.url-input::placeholder{color:var(--muted)}
-.btn-go{
-  background:var(--grad-mimo);border:none;color:#fff;padding:14px 28px;
-  border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-size:.9rem;
-  white-space:nowrap;transition:opacity .2s;
-}
-.btn-go:hover{opacity:.9}
-.btn-go:disabled{opacity:.5;cursor:not-allowed}
-
-/* Upload zone */
-.upload-zone{
-  border:2px dashed var(--line2);border-radius:var(--radius);padding:40px 20px;
-  text-align:center;cursor:pointer;transition:all .3s;
-}
-.upload-zone:hover,.upload-zone.drag-over{border-color:var(--acc);background:rgba(255,107,53,.05)}
-.upload-zone .icon{font-size:2.5rem;margin-bottom:12px}
-.upload-zone p{color:var(--muted);font-size:.9rem}
-.upload-zone .hint{font-size:.75rem;color:var(--muted);margin-top:8px;opacity:.7}
+.lang-toggle button{background:transparent;border:none;color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.75rem;font-weight:600;transition:all .2s}
+.lang-toggle button.active{background:var(--hydro);color:#fff}
+.hero{text-align:center;padding:80px 0 50px}
+.hero-badge{display:inline-block;border:1px solid var(--gold);color:var(--gold);border-radius:20px;padding:6px 18px;font-size:.72rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-bottom:24px;font-family:'Cinzel',serif}
+.hero h1{font-family:'Cinzel',serif;font-size:clamp(2.2rem,6vw,4rem);font-weight:900;line-height:1.08;margin-bottom:20px;letter-spacing:.02em}
+.hero h1 .gold{color:var(--gold)}
+.hero h1 .hydro{color:var(--hydro)}
+.hero p{color:var(--muted);font-size:clamp(.95rem,2vw,1.15rem);max-width:640px;margin:0 auto 32px;line-height:1.7}
+.hero-stats{display:flex;gap:40px;justify-content:center;flex-wrap:wrap;margin-top:20px}
+.hero-stat{text-align:center}
+.hero-stat .num{font-family:'Cinzel',serif;font-size:1.8rem;font-weight:700;color:var(--gold)}
+.hero-stat .lbl{font-size:.75rem;color:var(--muted);margin-top:2px;letter-spacing:.05em}
+.section-title{font-family:'Cinzel',serif;font-size:1.3rem;font-weight:700;text-align:center;margin:60px 0 32px;letter-spacing:.06em}
+.section-title .num{display:inline-block;background:var(--hydro);color:#08111f;width:28px;height:28px;border-radius:50%;line-height:28px;text-align:center;font-size:.8rem;margin-right:8px;font-family:'Inter',sans-serif}
+.input-section{max-width:800px;margin:0 auto 40px}
+.input-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--panel);border-radius:var(--radius);padding:4px;border:1px solid var(--line)}
+.input-tab{flex:1;padding:12px;text-align:center;border-radius:var(--radius-sm);cursor:pointer;font-weight:600;font-size:.85rem;color:var(--muted);border:none;background:transparent;transition:all .2s}
+.input-tab.active{background:linear-gradient(135deg,var(--hydro),var(--hydro-deep));color:#fff}
+.input-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.input-row{display:flex;gap:12px;align-items:stretch}
+.url-input{flex:1;background:var(--panel2);border:1px solid var(--line2);border-radius:var(--radius-sm);padding:16px 18px;color:var(--text);font-size:.95rem;font-family:inherit;outline:none;transition:border-color .2s}
+.url-input:focus{border-color:var(--hydro)}
+.url-input::placeholder{color:var(--muted);opacity:.6}
+.btn-go{background:linear-gradient(135deg,var(--hydro),var(--hydro-deep));border:none;color:#fff;padding:16px 32px;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-size:.9rem;white-space:nowrap;transition:all .2s;letter-spacing:.02em}
+.btn-go:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(79,199,247,.3)}
+.btn-go:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.upload-zone{border:2px dashed var(--line2);border-radius:var(--radius);padding:50px 20px;text-align:center;cursor:pointer;transition:all .3s}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--hydro);background:rgba(79,199,247,.04)}
+.upload-zone .icon{font-size:3rem;margin-bottom:16px}
+.upload-zone p{color:var(--muted);font-size:.95rem}
+.upload-zone .hint{font-size:.75rem;color:var(--muted);margin-top:10px;opacity:.6}
 .upload-zone input{display:none}
-
-/* Manual fonts input */
-.manual-input{
-  background:var(--panel2);border:1px solid var(--line2);border-radius:var(--radius-sm);
-  padding:16px;width:100%;color:var(--text);font-size:.9rem;font-family:inherit;
-  outline:none;resize:vertical;min-height:80px;
-}
-.manual-input:focus{border-color:var(--acc)}
-.manual-hint{font-size:.75rem;color:var(--muted);margin-top:8px}
-
-/* ─── Loading ─── */
-.loading{display:none;text-align:center;padding:60px 0}
+.manual-input{background:var(--panel2);border:1px solid var(--line2);border-radius:var(--radius-sm);padding:18px;width:100%;color:var(--text);font-size:.9rem;font-family:'JetBrains Mono',monospace;outline:none;resize:vertical;min-height:100px}
+.manual-input:focus{border-color:var(--hydro)}
+.manual-hint{font-size:.78rem;color:var(--muted);margin-top:10px}
+.loading{display:none;text-align:center;padding:80px 0}
 .loading.on{display:block}
-.spinner{
-  width:48px;height:48px;border:3px solid var(--line2);border-top-color:var(--acc);
-  border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;
-}
+.spinner{width:56px;height:56px;border:3px solid var(--line2);border-top-color:var(--hydro);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.loading p{color:var(--muted);font-size:.9rem}
-.loading .step{font-size:.8rem;margin-top:8px;color:var(--acc)}
-
-/* ─── Results ─── */
-#results{display:none}
+.loading p{color:var(--muted);font-size:1rem;font-family:'Cinzel',serif}
+.loading .step{font-size:.82rem;margin-top:10px;color:var(--hydro)}
+#results{display:none;padding-bottom:60px}
 #results.on{display:block}
-.results-grid{display:grid;grid-template-columns:300px 1fr;gap:24px;margin-bottom:32px}
+.results-grid{display:grid;grid-template-columns:320px 1fr;gap:28px;margin-bottom:36px}
 @media(max-width:768px){.results-grid{grid-template-columns:1fr}}
-
-/* Score card */
-.score-card{
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-  padding:28px;text-align:center;
-}
-.score-ring{
-  width:180px;height:180px;margin:0 auto 20px;position:relative;
-}
+.score-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:32px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.score-ring{width:200px;height:200px;margin:0 auto 24px;position:relative}
 .score-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
 .score-ring circle{fill:none;stroke-width:8;stroke-linecap:round}
 .score-ring .bg{stroke:var(--line2)}
-.score-ring .fg{stroke:var(--acc);transition:stroke-dashoffset 1.5s ease}
+.score-ring .fg{transition:stroke-dashoffset 1.5s ease}
 .score-ring .fg.good{stroke:var(--good)}
 .score-ring .fg.warn{stroke:var(--warn)}
 .score-ring .fg.bad{stroke:var(--bad)}
-.score-num{
-  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  font-size:2.8rem;font-weight:900;
-}
-.score-label{font-size:.85rem;color:var(--muted);font-weight:600}
-.score-grade{
-  display:inline-block;margin-top:8px;padding:4px 14px;border-radius:20px;
-  font-size:.75rem;font-weight:700;
-}
-.grade-excellent{background:rgba(0,214,143,.15);color:var(--good)}
-.grade-good{background:rgba(59,130,246,.15);color:var(--acc3)}
-.grade-fair{background:rgba(255,184,0,.15);color:var(--warn)}
-.grade-poor{background:rgba(255,77,109,.15);color:var(--bad)}
-
-/* Analysis panel */
-.analysis-panel{
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-  padding:24px;overflow:hidden;
-}
-.analysis-panel h3{font-size:1rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.score-num{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.score-num .val{font-family:'Cinzel',serif;font-size:3rem;font-weight:900;display:block}
+.score-num .lbl{font-size:.7rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.score-grade{display:inline-block;margin-top:12px;padding:6px 18px;border-radius:20px;font-size:.78rem;font-weight:700;letter-spacing:.05em}
+.grade-excellent{background:rgba(0,214,143,.15);color:var(--good);border:1px solid rgba(0,214,143,.3)}
+.grade-good{background:rgba(79,199,247,.15);color:var(--hydro);border:1px solid rgba(79,199,247,.3)}
+.grade-fair{background:rgba(255,184,0,.15);color:var(--warn);border:1px solid rgba(255,184,0,.3)}
+.grade-poor{background:rgba(255,77,109,.15);color:var(--bad);border:1px solid rgba(255,77,109,.3)}
+.sub-scores{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:20px}
+.sub-score{background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px 8px;text-align:center}
+.sub-score .val{font-family:'Cinzel',serif;font-size:1.4rem;font-weight:700}
+.sub-score .lbl{font-size:.68rem;color:var(--muted);margin-top:2px;font-weight:500;letter-spacing:.03em}
+.analysis-panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.analysis-panel h3{font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700;margin-bottom:20px;color:var(--gold);letter-spacing:.04em}
+.font-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+.font-card{background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:18px;text-align:center;transition:all .3s}
+.font-card:hover{border-color:var(--hydro);transform:translateY(-2px)}
+.font-card .preview{font-size:1.6rem;margin-bottom:10px;min-height:44px;display:flex;align-items:center;justify-content:center;color:var(--gold)}
+.font-card .name{font-size:.82rem;font-weight:600;color:var(--text)}
+.font-card .role{font-size:.7rem;color:var(--hydro);margin-top:3px;font-weight:500}
 .analysis-section{margin-bottom:24px}
 .analysis-section:last-child{margin-bottom:0}
-.analysis-section h4{font-size:.85rem;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em}
-.analysis-text{font-size:.9rem;line-height:1.7;color:var(--text)}
-.analysis-text strong{color:var(--acc)}
-
-/* Detected fonts */
-.font-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:20px}
-.font-card{
-  background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius-sm);
-  padding:16px;text-align:center;
-}
-.font-card .preview{font-size:1.5rem;margin-bottom:8px;min-height:40px;display:flex;align-items:center;justify-content:center}
-.font-card .name{font-size:.8rem;font-weight:600;color:var(--muted)}
-.font-card .role{font-size:.7rem;color:var(--acc);margin-top:2px}
-
-/* Alternatives */
-.alt-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
-.alt-card{
-  background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius);
-  padding:20px;position:relative;overflow:hidden;
-}
-.alt-card::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:var(--grad-mimo);
-}
-.alt-card h4{font-size:.9rem;font-weight:700;margin-bottom:4px}
-.alt-card .reason{font-size:.8rem;color:var(--muted);margin-bottom:12px}
-.alt-card .preview-text{font-size:1.1rem;line-height:1.5;margin-bottom:8px}
-.alt-card .meta{font-size:.72rem;color:var(--muted)}
-
-/* Sub-scores */
-.sub-scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
-.sub-score{
-  background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius-sm);
-  padding:14px;text-align:center;
-}
-.sub-score .val{font-size:1.5rem;font-weight:800}
-.sub-score .lbl{font-size:.72rem;color:var(--muted);margin-top:2px;font-weight:500}
-
-/* ─── Footer ─── */
-footer{
-  text-align:center;padding:40px 0;border-top:1px solid var(--line);margin-top:60px;
-  color:var(--muted);font-size:.8rem;
-}
-footer a{color:var(--acc);text-decoration:none}
-
-/* ─── Mobile ─── */
-@media(max-width:768px){
-  .container{padding:0 14px}
-  .hero{padding:40px 0 24px}
-  .input-row{flex-direction:column}
-  .btn-go{width:100%}
-  .results-grid{grid-template-columns:1fr}
-  .score-ring{width:140px;height:140px}
-  .score-num{font-size:2rem}
-  .alt-cards{grid-template-columns:1fr}
-}
-@media(max-width:480px){
-  .pills{flex-direction:column;align-items:center}
-  .sub-scores{grid-template-columns:repeat(2,1fr)}
-}
-
-/* ─── Reveal Animations ─── */
-.reveal{opacity:0;transform:translateY(20px);transition:all .6s ease}
+.analysis-section h4{font-family:'Cinzel',serif;font-size:.85rem;font-weight:600;color:var(--gold);margin-bottom:12px;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.analysis-section h4::before{content:'';width:20px;height:2px;background:var(--gold)}
+.analysis-text{font-size:.92rem;line-height:1.8;color:var(--text)}
+.alt-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.alt-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px;position:relative;overflow:hidden;transition:all .3s;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+.alt-card:hover{border-color:var(--hydro);transform:translateY(-3px);box-shadow:0 16px 50px rgba(0,0,0,.3)}
+.alt-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--hydro))}
+.alt-card h4{font-family:'Cinzel',serif;font-size:.95rem;font-weight:700;margin-bottom:6px}
+.alt-card .reason{font-size:.82rem;color:var(--muted);margin-bottom:14px;line-height:1.5}
+.alt-card .preview-text{font-size:1.15rem;line-height:1.6;margin-bottom:10px;color:var(--text)}
+.alt-card .meta{font-size:.72rem;color:var(--hydro);font-weight:500}
+footer{text-align:center;padding:50px 0;border-top:1px solid var(--line);margin-top:80px;color:var(--muted);font-size:.82rem}
+footer .brand{font-family:'Cinzel',serif;font-size:1.1rem;color:var(--gold);letter-spacing:.08em;margin-bottom:8px}
+footer a{color:var(--hydro);text-decoration:none}
+footer a:hover{color:var(--gold)}
+.reveal{opacity:0;transform:translateY(24px);transition:all .7s ease}
 .reveal.visible{opacity:1;transform:translateY(0)}
 @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+@media(max-width:768px){
+  .container{padding:0 14px}
+  .hero{padding:50px 0 30px}
+  .hero-stats{gap:24px}
+  .input-row{flex-direction:column}
+  .btn-go{width:100%}
+  .score-ring{width:160px;height:160px}
+  .score-num .val{font-size:2.2rem}
+  .alt-cards{grid-template-columns:1fr}
+  .sub-scores{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:480px){
+  .sub-scores{grid-template-columns:1fr 1fr 1fr;gap:4px}
+  .font-cards{grid-template-columns:1fr 1fr}
+}
 </style>
 </head>
 <body>
-<div class="bg-mesh"></div>
-
-<nav>
-  <div class="container">
-    <div class="nav-brand">🧠 <span>MiMoFont</span></div>
-    <div class="nav-controls">
-      <div class="lang-toggle">
-        <button class="active" onclick="setLang('en')">EN</button>
-        <button onclick="setLang('id')">ID</button>
-      </div>
-      <button class="btn-ghost" onclick="toggleTheme()">🌓</button>
+<div class="bg-ocean"></div>
+<div class="starfield" id="starfield"></div>
+<nav><div class="container">
+  <div class="nav-brand">MIMOFONT</div>
+  <div class="nav-controls">
+    <div class="lang-toggle">
+      <button class="active" onclick="setLang('en')">EN</button>
+      <button onclick="setLang('id')">ID</button>
     </div>
+    <button class="btn-ghost" onclick="toggleTheme()" title="Toggle theme">Theme</button>
   </div>
-</nav>
+</div></nav>
 
 <div class="container">
-  <!-- Hero -->
-  <section class="hero reveal">
-    <div class="hero-eyebrow"><span class="dot"></span> <span data-i18n="powered">Powered by Xiaomi MiMo V2.5</span></div>
-    <h1><span data-i18n="hero1">AI Typography</span><br><span class="grad" data-i18n="hero2">Critic & Font Advisor</span></h1>
-    <p data-i18n="hero_desc">Upload a screenshot or paste a URL. Get readability scores, pairing harmony, accessibility audit, and better alternatives — instantly.</p>
-    <div class="pill-row pills">
-      <span class="pill" data-i18n="p1">📸 Screenshot Analysis</span>
-      <span class="pill" data-i18n="p2">🔗 URL Font Detection</span>
-      <span class="pill" data-i18n="p3">♿ Accessibility Audit</span>
-      <span class="pill" data-i18n="p4">🎨 Smart Alternatives</span>
-    </div>
-  </section>
-
-  <!-- Input -->
-  <section class="input-section reveal">
-    <div class="input-tabs">
-      <button class="input-tab active" onclick="switchTab('url')" data-i18n="tab_url">🔗 Paste URL</button>
-      <button class="input-tab" onclick="switchTab('upload')" data-i18n="tab_upload">📸 Upload Screenshot</button>
-      <button class="input-tab" onclick="switchTab('manual')" data-i18n="tab_manual">✏️ Type Fonts</button>
-    </div>
-    <div class="input-card">
-      <!-- URL -->
-      <div id="tab-url">
-        <div class="input-row">
-          <input class="url-input" id="urlInput" type="url" placeholder="https://stripe.com" data-i18n-ph="url_ph">
-          <button class="btn-go" id="btnAnalyze" onclick="analyzeURL()" data-i18n="analyze">Analyze →</button>
-        </div>
-      </div>
-      <!-- Upload -->
-      <div id="tab-upload" style="display:none">
-        <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-          <div class="icon">📸</div>
-          <p data-i18n="upload_text">Drop screenshot here or click to browse</p>
-          <div class="hint" data-i18n="upload_hint">PNG, JPG, WebP — max 5MB</div>
-          <input type="file" id="fileInput" accept="image/*" onchange="handleUpload(this)">
-        </div>
-      </div>
-      <!-- Manual -->
-      <div id="tab-manual" style="display:none">
-        <textarea class="manual-input" id="manualInput" placeholder="Heading: Cinzel&#10;Body: Inter&#10;Code: JetBrains Mono" data-i18n-ph="manual_ph"></textarea>
-        <div class="manual-hint" data-i18n="manual_hint">Enter font names separated by line or comma. Label as heading/body/code if possible.</div>
-        <div style="margin-top:12px">
-          <button class="btn-go" onclick="analyzeManual()" data-i18n="analyze">Analyze →</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Loading -->
-  <div class="loading" id="loading">
-    <div class="spinner"></div>
-    <p data-i18n="analyzing">Analyzing typography...</p>
-    <div class="step" id="loadingStep"></div>
+<section class="hero reveal">
+  <div class="hero-badge" data-i18n="badge">AI Typography Critic</div>
+  <h1><span data-i18n="h1a">Know Your Fonts.</span><br><span class="gold" data-i18n="h1b">Fix Your Fonts.</span></h1>
+  <p data-i18n="desc">Paste any URL or upload a screenshot. MiMoFont detects every typeface, scores pairing harmony and readability, audits accessibility, then suggests better alternatives with reasoning.</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="num">4</div><div class="lbl" data-i18n="s1">Score Dimensions</div></div>
+    <div class="hero-stat"><div class="num">10s</div><div class="lbl" data-i18n="s2">Analysis Time</div></div>
+    <div class="hero-stat"><div class="num">Free</div><div class="lbl" data-i18n="s3">No API Key</div></div>
   </div>
+</section>
 
-  <!-- Results -->
-  <div id="results">
-    <div class="results-grid reveal">
-      <!-- Score -->
-      <div class="score-card">
-        <div class="score-ring">
-          <svg viewBox="0 0 100 100">
-            <circle class="bg" cx="50" cy="50" r="42"/>
-            <circle class="fg" id="scoreRing" cx="50" cy="50" r="42"
-              stroke-dasharray="264" stroke-dashoffset="264"/>
-          </svg>
-          <div class="score-num" id="scoreNum">—</div>
-        </div>
-        <div class="score-label" data-i18n="overall">Overall Typography Score</div>
-        <div class="score-grade" id="scoreGrade"></div>
-        <div style="margin-top:20px">
-          <div class="sub-scores" id="subScores"></div>
-        </div>
-      </div>
-      <!-- Analysis -->
-      <div class="analysis-panel">
-        <h3>📝 <span data-i18n="analysis">Analysis</span></h3>
-        <div class="font-cards" id="fontCards"></div>
-        <div class="analysis-section">
-          <h4 data-i18n="pairing">Pairing Harmony</h4>
-          <div class="analysis-text" id="pairingText"></div>
-        </div>
-        <div class="analysis-section">
-          <h4 data-i18n="readability">Readability</h4>
-          <div class="analysis-text" id="readabilityText"></div>
-        </div>
-        <div class="analysis-section">
-          <h4 data-i18n="accessibility">Accessibility</h4>
-          <div class="analysis-text" id="a11yText"></div>
-        </div>
+<section class="input-section reveal">
+  <div class="section-title"><span class="num">1</span> <span data-i18n="sec1">Input Your Design</span></div>
+  <div class="input-tabs">
+    <button class="input-tab active" onclick="switchTab('url')" data-i18n="t1">Paste URL</button>
+    <button class="input-tab" onclick="switchTab('upload')" data-i18n="t2">Upload Screenshot</button>
+    <button class="input-tab" onclick="switchTab('manual')" data-i18n="t3">Type Fonts</button>
+  </div>
+  <div class="input-card">
+    <div id="tab-url">
+      <div class="input-row">
+        <input class="url-input" id="urlInput" type="url" placeholder="https://stripe.com">
+        <button class="btn-go" id="btnAnalyze" onclick="doAnalyze('url')">Analyze</button>
       </div>
     </div>
-    <!-- Alternatives -->
-    <div class="reveal">
-      <h3 style="margin-bottom:16px">✨ <span data-i18n="alternatives">Suggested Alternatives</span></h3>
-      <div class="alt-cards" id="altCards"></div>
+    <div id="tab-upload" style="display:none">
+      <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <div class="icon">&#128247;</div>
+        <p data-i18n="up1">Drop screenshot here or click to browse</p>
+        <div class="hint" data-i18n="up2">PNG, JPG, WebP</div>
+        <input type="file" id="fileInput" accept="image/*">
+      </div>
+    </div>
+    <div id="tab-manual" style="display:none">
+      <textarea class="manual-input" id="manualInput" placeholder="Heading: Cinzel&#10;Body: Inter&#10;Code: JetBrains Mono"></textarea>
+      <div class="manual-hint" data-i18n="mh">Enter font names. Label as heading/body/code.</div>
+      <div style="margin-top:14px"><button class="btn-go" onclick="doAnalyze('manual')">Analyze</button></div>
     </div>
   </div>
+</section>
+
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <p data-i18n="ld">Analyzing typography...</p>
+  <div class="step" id="loadingStep"></div>
+</div>
+
+<section id="results">
+  <div class="section-title"><span class="num">2</span> <span data-i18n="sec2">Analysis Results</span></div>
+  <div class="results-grid reveal">
+    <div class="score-card">
+      <div class="score-ring">
+        <svg viewBox="0 0 100 100">
+          <circle class="bg" cx="50" cy="50" r="42"/>
+          <circle class="fg" id="scoreRing" cx="50" cy="50" r="42" stroke-dasharray="264" stroke-dashoffset="264"/>
+        </svg>
+        <div class="score-num"><span class="val" id="scoreVal">--</span><span class="lbl">SCORE</span></div>
+      </div>
+      <div class="score-grade" id="scoreGrade"></div>
+      <div class="sub-scores" id="subScores"></div>
+    </div>
+    <div class="analysis-panel">
+      <h3 data-i18n="det">Detected Fonts</h3>
+      <div class="font-cards" id="fontCards"></div>
+      <div class="analysis-section"><h4 data-i18n="ph">Pairing Harmony</h4><div class="analysis-text" id="pairingText"></div></div>
+      <div class="analysis-section"><h4 data-i18n="rd">Readability</h4><div class="analysis-text" id="readabilityText"></div></div>
+      <div class="analysis-section"><h4 data-i18n="ac">Accessibility</h4><div class="analysis-text" id="a11yText"></div></div>
+    </div>
+  </div>
+  <div class="reveal">
+    <div class="section-title"><span class="num">3</span> <span data-i18n="sec3">Better Alternatives</span></div>
+    <div class="alt-cards" id="altCards"></div>
+  </div>
+</section>
 </div>
 
 <footer>
   <div class="container">
-    <p>🧠 Powered by <a href="https://xiaomimimo.com" target="_blank">Xiaomi MiMo V2.5</a> · Built for MiMo 100T Creator Program</p>
-    <p style="margin-top:4px">Free · No API key · Single HTML · <a href="https://github.com/gyoomei/mimofont" target="_blank">GitHub</a></p>
+    <div class="brand">MIMOFONT</div>
+    <p>Powered by <a href="https://xiaomimimo.com" target="_blank">Xiaomi MiMo V2.5</a> &middot; Built for MiMo 100T</p>
+    <p style="margin-top:6px"><a href="https://github.com/gyoomei/mimofont" target="_blank">GitHub</a> &middot; Free &middot; No API Key &middot; Single HTML</p>
   </div>
 </footer>
 
 <script>
-/* ═══════════════════════════════════════════════════════════
-   MiMoFont — AI Typography Critic v1
-   ═══════════════════════════════════════════════════════════ */
-
-// ─── State ──────────────────────────────────────────────
-let lang = localStorage.getItem('mimofont-lang') || 'en';
-let theme = localStorage.getItem('mimofont-theme') || 'dark';
-
-// ─── i18n ───────────────────────────────────────────────
-const I18N = {
-  en: {
-    powered: "Powered by Xiaomi MiMo V2.5",
-    hero1: "AI Typography",
-    hero2: "Critic & Font Advisor",
-    hero_desc: "Upload a screenshot or paste a URL. Get readability scores, pairing harmony, accessibility audit, and better alternatives — instantly.",
-    p1: "📸 Screenshot Analysis", p2: "🔗 URL Font Detection", p3: "♿ Accessibility Audit", p4: "🎨 Smart Alternatives",
-    tab_url: "🔗 Paste URL", tab_upload: "📸 Upload Screenshot", tab_manual: "✏️ Type Fonts",
-    url_ph: "https://stripe.com",
-    upload_text: "Drop screenshot here or click to browse",
-    upload_hint: "PNG, JPG, WebP — max 5MB",
-    manual_ph: "Heading: Cinzel\nBody: Inter\nCode: JetBrains Mono",
-    manual_hint: "Enter font names separated by line or comma. Label as heading/body/code if possible.",
-    analyze: "Analyze →",
-    analyzing: "Analyzing typography...",
-    step1: "Detecting fonts...",
-    step2: "Analyzing pairing...",
-    step3: "Generating alternatives...",
-    overall: "Overall Typography Score",
-    analysis: "Analysis",
-    pairing: "Pairing Harmony",
-    readability: "Readability",
-    accessibility: "Accessibility",
-    alternatives: "Suggested Alternatives",
-    excellent: "Excellent", good: "Good", fair: "Needs Work", poor: "Poor",
-    detected: "Detected Fonts",
-    recommended: "Recommended",
-    reason: "Why this works",
-  },
-  id: {
-    powered: "Didukung oleh Xiaomi MiMo V2.5",
-    hero1: "Kritikus Tipografi",
-    hero2: "Berbasis AI",
-    hero_desc: "Upload screenshot atau paste URL. Dapatkan skor keterbacaan, harmoni pasangan font, audit aksesibilitas, dan alternatif lebih baik — secara instan.",
-    p1: "📸 Analisis Screenshot", p2: "🔗 Deteksi Font dari URL", p3: "♿ Audit Aksesibilitas", p4: "🎨 Alternatif Cerdas",
-    tab_url: "🔗 Paste URL", tab_upload: "📸 Upload Screenshot", tab_manual: "✏️ Ketik Font",
-    url_ph: "https://stripe.com",
-    upload_text: "Drop screenshot di sini atau klik untuk browse",
-    upload_hint: "PNG, JPG, WebP — maks 5MB",
-    manual_ph: "Heading: Cinzel\nBody: Inter\nCode: JetBrains Mono",
-    manual_hint: "Masukkan nama font dipisah baris atau koma. Label sebagai heading/body/code jika bisa.",
-    analyze: "Analisis →",
-    analyzing: "Menganalisis tipografi...",
-    step1: "Mendeteksi font...",
-    step2: "Menganalisis keselarasan...",
-    step3: "Menghasilkan alternatif...",
-    overall: "Skor Tipografi Keseluruhan",
-    analysis: "Analisis",
-    pairing: "Keselarasan Pasangan",
-    readability: "Keterbacaan",
-    accessibility: "Aksesibilitas",
-    alternatives: "Alternatif yang Disarankan",
-    excellent: "Sangat Baik", good: "Baik", fair: "Perlu Perbaikan", poor: "Kurang Baik",
-    detected: "Font Terdeteksi",
-    recommended: "Direkomendasikan",
-    reason: "Mengapa ini bekerja",
+const I18N={en:{badge:"AI Typography Critic",h1a:"Know Your Fonts.",h1b:"Fix Your Fonts.",desc:"Paste any URL or upload a screenshot. MiMoFont detects every typeface, scores pairing harmony and readability, audits accessibility, then suggests better alternatives.",s1:"Score Dimensions",s2:"Analysis Time",s3:"No API Key",sec1:"Input Your Design",t1:"Paste URL",t2:"Upload Screenshot",t3:"Type Fonts",up1:"Drop screenshot here or click to browse",up2:"PNG, JPG, WebP",mh:"Enter font names. Label as heading/body/code.",ld:"Analyzing typography...",sec2:"Analysis Results",det:"Detected Fonts",ph:"Pairing Harmony",rd:"Readability",ac:"Accessibility",sec3:"Better Alternatives",excellent:"Excellent",good:"Good",fair:"Needs Work",poor:"Poor"},id:{badge:"Kritikus Tipografi AI",h1a:"Kenali Fontmu.",h1b:"Perbaiki Fontmu.",desc:"Paste URL atau upload screenshot. MiMoFont mendeteksi setiap font, skor keselarasan dan keterbacaan, audit aksesibilitas, lalu sarankan alternatif lebih baik.",s1:"Dimensi Skor",s2:"Waktu Analisis",s3:"Tanpa API Key",sec1:"Masukkan Desainmu",t1:"Paste URL",t2:"Upload Screenshot",t3:"Ketik Font",up1:"Drop screenshot di sini atau klik",up2:"PNG, JPG, WebP",mh:"Masukkan nama font. Label sebagai heading/body/code.",ld:"Menganalisis tipografi...",sec2:"Hasil Analisis",det:"Font Terdeteksi",ph:"Keselarasan",rd:"Keterbacaan",ac:"Aksesibilitas",sec3:"Alternatif Lebih Baik",excellent:"Sangat Baik",good:"Baik",fair:"Perlu Perbaikan",poor:"Kurang Baik"}};
+let lang=localStorage.getItem('mf-lang')||'en',theme=localStorage.getItem('mf-theme')||'dark';
+function t(k){return(I18N[lang]||I18N.en)[k]||I18N.en[k]||k}
+function setLang(l){lang=l;localStorage.setItem('mf-lang',l);document.querySelectorAll('.lang-toggle button').forEach(b=>b.classList.toggle('active',b.textContent===l.toUpperCase()));document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=t(el.dataset.i18n))}
+function toggleTheme(){theme=theme==='dark'?'light':'dark';document.documentElement.dataset.theme=theme;localStorage.setItem('mf-theme',theme)}
+function switchTab(tab){['url','upload','manual'].forEach(x=>{document.getElementById('tab-'+x).style.display=x===tab?'':'none'});document.querySelectorAll('.input-tab').forEach((b,i)=>b.classList.toggle('active',['url','upload','manual'][i]===tab))}
+const dz=document.getElementById('dropZone');if(dz){['dragenter','dragover'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.add('drag-over')}));['dragleave','drop'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.remove('drag-over')}));dz.addEventListener('drop',ev=>{if(ev.dataTransfer.files.length)handleFile(ev.dataTransfer.files[0])})}
+document.getElementById('fileInput').addEventListener('change',function(){if(this.files.length)handleFile(this.files[0])});
+function handleFile(file){const r=new FileReader();r.onload=async()=>{showLoad('Detecting fonts from image...');try{const res=await callMiMo("You are a typography expert. Analyze this screenshot. Identify all visible fonts. Return JSON: {\"fonts\":[{\"name\":\"...\",\"role\":\"heading|body|caption|code\",\"style\":\"serif|sans-serif|mono\"}],\"scores\":{\"pairing\":N,\"readability\":N,\"accessibility\":N,\"overall\":N},\"pairing_analysis\":\"...\",\"readability_analysis\":\"...\",\"accessibility_analysis\":\"...\",\"alternatives\":[{\"replace\":\"...\",\"with\":\"...\",\"reason\":\"...\"}]}",r.result);render(res)}catch(e){err(e.message)}};r.readAsDataURL(file)}
+async function doAnalyze(mode){
+  if(mode==='url'){
+    const url=document.getElementById('urlInput').value.trim();
+    if(!url)return;showLoad('Fetching page styles...');
+    try{
+      const resp=await fetch('https://corsproxy.io/?url='+encodeURIComponent(url),{signal:AbortSignal.timeout(12000)});
+      const html=await resp.text();
+      const fonts=extractFonts(html);
+      updateStep('Analyzing with MiMo...');
+      const fl=fonts.map(f=>f.role+': '+f.name+' ('+f.source+')').join('\n');
+      const prompt='You are a typography expert. Fonts detected from '+url+':\n'+fl+'\n\nAnalyze: pairing harmony (0-100), readability (0-100), accessibility (0-100). Return JSON only: {"fonts":[{"name":"...","role":"...","style":"serif|sans-serif|mono"}],"scores":{"pairing":N,"readability":N,"accessibility":N,"overall":N},"pairing_analysis":"...","readability_analysis":"...","accessibility_analysis":"...","alternatives":[{"replace":"...","with":"...","reason":"..."}]}';
+      const res=await callMiMo(prompt);render(res);
+    }catch(e){err(e.message)}
+  }else if(mode==='manual'){
+    const raw=document.getElementById('manualInput').value.trim();
+    if(!raw)return;showLoad('Analyzing fonts...');
+    try{
+      const fonts=raw.split(/[\n,]/).map(s=>s.trim()).filter(Boolean).map(s=>{const p=s.split(':').map(x=>x.trim());return p[1]?p[0]+': '+p[1]:s});
+      const prompt='You are a typography expert. Analyze these fonts:\n'+fonts.join('\n')+'\n\nReturn JSON only: {"fonts":[{"name":"...","role":"heading|body|code","style":"serif|sans-serif|mono"}],"scores":{"pairing":N,"readability":N,"accessibility":N,"overall":N},"pairing_analysis":"...","readability_analysis":"...","accessibility_analysis":"...","alternatives":[{"replace":"...","with":"...","reason":"..."}]}';
+      const res=await callMiMo(prompt);render(res);
+    }catch(e){err(e.message)}
   }
-};
-function t(key) { return I18N[lang]?.[key] || I18N.en[key] || key; }
-
-// ─── Theme & Lang ──────────────────────────────────────
-function setLang(l) {
-  lang = l;
-  localStorage.setItem('mimofont-lang', l);
-  document.querySelectorAll('.lang-toggle button').forEach(b => b.classList.toggle('active', b.textContent === l.toUpperCase()));
-  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
-  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
 }
-function toggleTheme() {
-  theme = theme === 'dark' ? 'light' : 'dark';
-  document.documentElement.dataset.theme = theme;
-  localStorage.setItem('mimofont-theme', theme);
+function extractFonts(html){
+  const fonts=[],seen=new Set();
+  const gf=html.matchAll(/family=([^"&\s]+)/gi);
+  for(const m of gf){const n=decodeURIComponent(m[1]).split(':')[0].replace(/\+/g,' ');if(!seen.has(n)){seen.add(n);fonts.push({name:n,role:'web',source:'Google Fonts'})}}
+  const ff=html.matchAll(/@font-face\s*\{[^}]*font-family:\s*['"]([^'"]+)['"]/gi);
+  for(const m of ff){if(!seen.has(m[1])){seen.add(m[1]);fonts.push({name:m[1],role:'custom',source:'@font-face'})}}
+  const fam=html.matchAll(/font-family:\s*([^;}]+)/gi);
+  for(const m of fam){m[1].split(',').forEach(f=>{const n=f.trim().replace(/['"]/g,'');if(n&&!seen.has(n)&&!['inherit','initial','unset','serif','sans-serif','monospace','system-ui'].includes(n.toLowerCase())){seen.add(n);fonts.push({name:n,role:'inline',source:'CSS'})}})}
+  fonts.forEach((f,i)=>{if(f.role==='web'||f.role==='custom')f.role=i===0?'heading':'body'});
+  return fonts.length?fonts:[{name:'System Default',role:'body',source:'fallback'}];
 }
-
-// ─── Tabs ──────────────────────────────────────────────
-function switchTab(tab) {
-  ['url','upload','manual'].forEach(t => { document.getElementById('tab-'+t).style.display = t===tab ? '' : 'none'; });
-  document.querySelectorAll('.input-tab').forEach((btn,i) => {
-    btn.classList.toggle('active', ['url','upload','manual'][i] === tab);
-  });
+async function callMiMo(prompt,imgB64){
+  const msgs=[{role:'user',content:imgB64?[{type:'text',text:prompt},{type:'image_url',image_url:{url:imgB64}}]:prompt}];
+  const resp=await fetch('https://text.pollinations.ai/openai?referrer=mimofont',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'openai',messages:msgs,referrer:'mimofont'}),signal:AbortSignal.timeout(60000)});
+  const data=await resp.json();
+  const c=data.choices?.[0]?.message?.content||'';
+  const m=c.match(/\{[\s\S]*\}/);
+  if(!m)throw new Error('AI returned unexpected format. Try again.');
+  return JSON.parse(m[0]);
 }
-
-// ─── Drag & Drop ──────────────────────────────────────
-const dz = document.getElementById('dropZone');
-if (dz) {
-  ['dragenter','dragover'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.add('drag-over'); }));
-  ['dragleave','drop'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.remove('drag-over'); }));
-  dz.addEventListener('drop', ev => { if(ev.dataTransfer.files.length) processFile(ev.dataTransfer.files[0]); });
+function render(data){
+  document.getElementById('loading').classList.remove('on');
+  document.getElementById('results').classList.add('on');
+  const s=data.scores||{},o=s.overall||0,fonts=data.fonts||[],alts=data.alternatives||[];
+  const ring=document.getElementById('scoreRing');
+  ring.style.strokeDashoffset=264-(o/100)*264;
+  ring.classList.remove('good','warn','bad');ring.classList.add(o>=80?'good':o>=60?'warn':'bad');
+  document.getElementById('scoreVal').textContent=o;
+  const ge=document.getElementById('scoreGrade');
+  let g,gc;if(o>=85){g=t('excellent');gc='grade-excellent'}else if(o>=70){g=t('good');gc='grade-good'}else if(o>=50){g=t('fair');gc='grade-fair'}else{g=t('poor');gc='grade-poor'}
+  ge.textContent=g;ge.className='score-grade '+gc;
+  document.getElementById('subScores').innerHTML=['pairing','readability','accessibility'].map(k=>'<div class="sub-score"><div class="val" style="color:'+(s[k]>=80?'var(--good)':s[k]>=60?'var(--hydro)':'var(--bad)')+'">'+(s[k]||'--')+'</div><div class="lbl">'+t(k==='pairing'?'ph':k==='readability'?'rd':'ac')+'</div></div>').join('');
+  document.getElementById('fontCards').innerHTML=fonts.map(f=>'<div class="font-card"><div class="preview" style="font-family:\''+f.name+'\',serif">Aa Bb</div><div class="name">'+f.name+'</div><div class="role">'+(f.role||'')+'</div></div>').join('');
+  document.getElementById('pairingText').textContent=data.pairing_analysis||'--';
+  document.getElementById('readabilityText').textContent=data.readability_analysis||'--';
+  document.getElementById('a11yText').textContent=data.accessibility_analysis||'--';
+  document.getElementById('altCards').innerHTML=alts.map(a=>'<div class="alt-card"><h4>Replace <strong>'+a.replace+'</strong> with <strong style="color:var(--good)">'+a.with+'</strong></h4><div class="reason">'+(a.reason||'')+'</div><div class="preview-text" style="font-family:\''+a.with+'\',sans-serif">The quick brown fox jumps over the lazy dog.</div><div class="meta">Available on Google Fonts</div></div>').join('');
+  setTimeout(()=>document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'}),300);
 }
-
-function handleUpload(input) { if(input.files.length) processFile(input.files[0]); }
-
-function processFile(file) {
-  const reader = new FileReader();
-  reader.onload = async () => {
-    const b64 = reader.result;
-    showLoading();
-    updateStep(t('step1'));
-    try {
-      const prompt = `You are a typography expert analyzing a screenshot. Identify ALL fonts visible in this image. For each font, estimate: font name, role (heading/body/caption/code), style characteristics (serif/sans-serif, weight, contrast). Also assess: overall pairing harmony (0-100), readability (0-100), accessibility (0-100). Return valid JSON only:
-{"fonts":[{"name":"...","role":"heading|body|caption|code","style":"serif|sans-serif|mono","weight":"...","contrast":"high|medium|low"}],"scores":{"pairing":N,"readability":N,"accessibility":N,"overall":N},"pairing_analysis":"...","readability_analysis":"...","accessibility_analysis":"...","alternatives":[{"replace":"...","with":"...","reason":"..."}]}`;
-      const res = await callMiMo(prompt, b64);
-      renderResults(res);
-    } catch(e) { showError(e.message); }
-  };
-  reader.readAsDataURL(file);
-}
-
-// ─── URL Analysis ──────────────────────────────────────
-async function analyzeURL() {
-  const url = document.getElementById('urlInput').value.trim();
-  if (!url) return;
-  showLoading();
-  updateStep(t('step1'));
-
-  try {
-    // Fetch page CSS via corsproxy
-    const cssResp = await fetchWithTimeout(`https://corsproxy.io/?url=${encodeURIComponent(url)}`, {}, 15000);
-    const html = await cssResp.text();
-    const fonts = extractFontsFromHTML(html, url);
-
-    updateStep(t('step2'));
-    const fontList = fonts.map(f => `${f.role}: ${f.name} (${f.source})`).join('\n');
-    const prompt = `You are a typography expert. Analyze these fonts detected from ${url}:
-
-${fontList}
-
-Assess:
-1. Pairing harmony — do these fonts complement each other? Score 0-100.
-2. Readability — are they readable at their intended sizes? Score 0-100.
-3. Accessibility — do they meet WCAG guidelines? Score 0-100.
-4. Overall score — weighted average.
-
-Return valid JSON only:
-{"fonts":[...],"scores":{"pairing":N,"readability":N,"accessibility":N,"overall":N},"pairing_analysis":"detailed paragraph","readability_analysis":"detailed paragraph","accessibility_analysis":"detailed paragraph","alternatives":[{"replace":"font_to_replace","with":"better_font","reason":"why"}]}`;
-
-    const res = await callMiMo(prompt);
-    res.detected_fonts = fonts;
-    renderResults(res);
-  } catch(e) { showError(e.message); }
-}
-
-// ─── Manual Analysis ──────────────────────────────────
-async function analyzeManual() {
-  const raw = document.getElementById('manualInput').value.trim();
-  if (!raw) return;
-  showLoading();
-  updateStep(t('step2'));
-
-  try {
-    const fonts = raw.split(/[,\n]/).map(s => s.trim()).filter(Boolean).map(s => {
-      const parts = s.split(':').map(p => p.trim());
-      return { name: parts[1] || parts[0], role: parts[1] ? parts[0].toLowerCase() : 'body', source: 'manual' };
-    });
-
-    const fontList = fonts.map(f => `${f.role}: ${f.name}`).join('\n');
-    const prompt = `You are a typography expert. Analyze these fonts:
-
-${fontList}
-
-Assess pairing harmony (0-100), readability (0-100), accessibility (0-100), overall score.
-Return valid JSON only:
-{"fonts":[{"name":"...","role":"...","style":"serif|sans-serif|mono","weight":"normal|bold","contrast":"high|medium|low"}],"scores":{"pairing":N,"readability":N,"accessibility":N,"overall":N},"pairing_analysis":"...","readability_analysis":"...","accessibility_analysis":"...","alternatives":[{"replace":"...","with":"...","reason":"..."}]}`;
-
-    const res = await callMiMo(prompt);
-    res.detected_fonts = fonts;
-    renderResults(res);
-  } catch(e) { showError(e.message); }
-}
-
-// ─── Font Extraction from HTML ─────────────────────────
-function extractFontsFromHTML(html, baseUrl) {
-  const fonts = [];
-  const seen = new Set();
-
-  // Google Fonts
-  const gfonts = html.matchAll(/fonts\.googleapis\.com\/css2?\?family=([^"'\s&]+)/gi);
-  for (const m of gfonts) {
-    const families = decodeURIComponent(m[1]).split('&').find(p => p.startsWith('family='))?.replace('family=','') || m[1];
-    families.split('&family=').forEach(f => {
-      const name = f.split(':')[0].replace(/\+/g, ' ');
-      if (!seen.has(name)) { seen.add(name); fonts.push({ name, role: 'web', source: 'Google Fonts' }); }
-    });
-  }
-
-  // @font-face
-  const fontFaces = html.matchAll(/@font-face\s*\{[^}]*font-family:\s*['"]([^'"]+)['"]/gi);
-  for (const m of fontFaces) {
-    if (!seen.has(m[1])) { seen.add(m[1]); fonts.push({ name: m[1], role: 'custom', source: '@font-face' }); }
-  }
-
-  // font-family declarations
-  const families = html.matchAll(/font-family:\s*([^;}]+)/gi);
-  for (const m of families) {
-    m[1].split(',').forEach(f => {
-      const name = f.trim().replace(/['"]/g, '');
-      if (name && !seen.has(name) && !['inherit','initial','unset','serif','sans-serif','monospace','cursive','fantasy','system-ui'].includes(name.toLowerCase())) {
-        seen.add(name);
-        fonts.push({ name, role: 'inline', source: 'CSS' });
-      }
-    });
-  }
-
-  // Assign roles heuristically
-  fonts.forEach((f, i) => {
-    if (f.role === 'web' || f.role === 'custom') f.role = i === 0 ? 'heading' : 'body';
-  });
-
-  return fonts.length ? fonts : [{ name: 'System Default', role: 'body', source: 'fallback' }];
-}
-
-// ─── MiMo API ─────────────────────────────────────────
-async function callMiMo(systemPrompt, imageB64) {
-  const messages = [{ role: 'system', content: systemPrompt }];
-  if (imageB64) {
-    messages.push({ role: 'user', content: [{ type: 'image_url', image_url: { url: imageB64 } }] });
-  }
-
-  const resp = await fetchWithTimeout('https://text.pollinations.ai/openai?referrer=mimofont', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'openai', messages, referrer: 'mimofont' })
-  }, 60000);
-
-  const data = await resp.json();
-  const content = data.choices?.[0]?.message?.content || '';
-
-  // Extract JSON from response
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('AI returned invalid format. Try again.');
-  return JSON.parse(jsonMatch[0]);
-}
-
-function fetchWithTimeout(url, opts = {}, timeoutMs = 15000) {
-  if (typeof AbortSignal.timeout === 'function') {
-    return fetch(url, { ...opts, signal: AbortSignal.timeout(timeoutMs) });
-  }
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(timer));
-}
-
-// ─── Render Results ───────────────────────────────────
-function renderResults(data) {
-  hideLoading();
-  const res = document.getElementById('results');
-  res.classList.add('on');
-
-  const scores = data.scores || {};
-  const overall = scores.overall || 0;
-  const fonts = data.fonts || data.detected_fonts || [];
-  const alts = data.alternatives || [];
-
-  // Score ring
-  const ring = document.getElementById('scoreRing');
-  const circumference = 264;
-  ring.style.strokeDashoffset = circumference - (overall / 100) * circumference;
-  ring.classList.remove('good','warn','bad');
-  ring.classList.add(overall >= 80 ? 'good' : overall >= 60 ? 'warn' : 'bad');
-
-  document.getElementById('scoreNum').textContent = overall;
-
-  // Grade
-  const gradeEl = document.getElementById('scoreGrade');
-  let grade, gradeClass;
-  if (overall >= 85) { grade = t('excellent'); gradeClass = 'grade-excellent'; }
-  else if (overall >= 70) { grade = t('good'); gradeClass = 'grade-good'; }
-  else if (overall >= 50) { grade = t('fair'); gradeClass = 'grade-fair'; }
-  else { grade = t('poor'); gradeClass = 'grade-poor'; }
-  gradeEl.textContent = grade;
-  gradeEl.className = 'score-grade ' + gradeClass;
-
-  // Sub-scores
-  const subScoresEl = document.getElementById('subScores');
-  subScoresEl.innerHTML = ['pairing','readability','accessibility'].map(k => `
-    <div class="sub-score">
-      <div class="val" style="color:${scores[k]>=80?'var(--good)':scores[k]>=60?'var(--warn)':'var(--bad)'}">${scores[k]||'—'}</div>
-      <div class="lbl">${t(k)}</div>
-    </div>
-  `).join('');
-
-  // Font cards
-  document.getElementById('fontCards').innerHTML = fonts.map(f => `
-    <div class="font-card">
-      <div class="preview" style="font-family:'${f.name}',sans-serif">Aa Bb Cc</div>
-      <div class="name">${f.name}</div>
-      <div class="role">${f.role || ''} · ${f.style || ''}</div>
-    </div>
-  `).join('');
-
-  // Analysis texts
-  document.getElementById('pairingText').innerHTML = data.pairing_analysis || '—';
-  document.getElementById('readabilityText').innerHTML = data.readability_analysis || '—';
-  document.getElementById('a11yText').innerHTML = data.accessibility_analysis || '—';
-
-  // Alternatives
-  document.getElementById('altCards').innerHTML = alts.map(a => `
-    <div class="alt-card">
-      <h4>Replace <strong>${a.replace}</strong> with <strong style="color:var(--good)">${a.with}</strong></h4>
-      <div class="reason">${a.reason || ''}</div>
-      <div class="preview-text" style="font-family:'${a.with}',sans-serif">The quick brown fox jumps over the lazy dog.</div>
-      <div class="meta">Available on Google Fonts · Free · Variable weight</div>
-    </div>
-  `).join('');
-
-  // Scroll to results
-  setTimeout(() => res.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
-}
-
-// ─── Loading UI ───────────────────────────────────────
-function showLoading() {
-  document.getElementById('loading').classList.add('on');
-  document.getElementById('results').classList.remove('on');
-}
-function hideLoading() { document.getElementById('loading').classList.remove('on'); }
-function updateStep(text) { document.getElementById('loadingStep').textContent = text; }
-function showError(msg) {
-  hideLoading();
-  alert('Error: ' + msg);
-}
-
-// ─── Reveal on scroll ─────────────────────────────────
-const observer = new IntersectionObserver(entries => {
-  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
-}, { threshold: 0, rootMargin: '0px 0px 40px 0px' });
-document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-// Safety net
-setTimeout(() => document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible')), 1500);
-
-// ─── Init ─────────────────────────────────────────────
-setLang(lang);
-document.documentElement.dataset.theme = theme;
-
-// Auto-trigger from URL hash
-const hashInput = decodeURIComponent(location.hash.slice(1));
-if (hashInput && /^https?:\/\//.test(hashInput)) {
-  document.getElementById('urlInput').value = hashInput;
-  switchTab('url');
-  analyzeURL();
-}
+function showLoad(step){document.getElementById('loading').classList.add('on');document.getElementById('results').classList.remove('on');document.getElementById('loadingStep').textContent=step||''}
+function updateStep(s){document.getElementById('loadingStep').textContent=s}
+function err(msg){document.getElementById('loading').classList.remove('on');console.error(msg);alert('Error: '+msg)}
+// Stars
+(function(){const sf=document.getElementById('starfield');for(let i=0;i<30;i++){const s=document.createElement('div');s.className='star';s.style.cssText='left:'+Math.random()*100+'%;top:'+Math.random()*100+'%;--dur:'+(3+Math.random()*5)+'s;background:rgba('+(Math.random()>.5?'240,215,140':'79,199,247')+','+(0.3+Math.random()*0.4)+')';sf.appendChild(s)}})();
+// Reveal
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')})},{threshold:0,rootMargin:'0px 0px 40px 0px'});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+setTimeout(()=>document.querySelectorAll('.reveal').forEach(el=>el.classList.add('visible')),1200);
+// Init
+setLang(lang);document.documentElement.dataset.theme=theme;
+const h=decodeURIComponent(location.hash.slice(1));
+if(h&&/^https?:/.test(h)){document.getElementById('urlInput').value=h;switchTab('url');doAnalyze('url')}
 </script>
 </body>
 </html>
