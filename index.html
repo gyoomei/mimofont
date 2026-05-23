@@ -268,11 +268,11 @@ function handleFile(file){
   r.onload=function(){
     updateStep('Sending to MiMo AI...');
     var b64=r.result;
-    var prompt='You are a typography expert. Analyze this screenshot and identify ALL visible fonts. For each font give: name, role (heading/body/caption/code), style (serif/sans-serif/mono). Score pairing, readability, accessibility, overall (0-100 each). Suggest 2-3 better alternatives. Return ONLY valid JSON: {"fonts":[{"name":"...","role":"heading","style":"sans-serif"}],"scores":{"pairing":80,"readability":75,"accessibility":85,"overall":80},"pairing_analysis":"...","readability_analysis":"...","accessibility_analysis":"...","alternatives":[{"replace":"...","with":"...","reason":"..."}]}';
+    var prompt='You are a typography expert. Look at this screenshot carefully. Identify ALL fonts you can see. Return ONLY this JSON format: {"fonts":[{"name":"FontName","role":"heading or body or caption or code","style":"serif or sans-serif or mono"}],"scores":{"pairing":85,"readability":80,"accessibility":75,"overall":80},"pairing_analysis":"your analysis","readability_analysis":"your analysis","accessibility_analysis":"your analysis","alternatives":[{"replace":"old","with":"new","reason":"why"}]}';
     fetch('https://text.pollinations.ai/openai?referrer=mimofont',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'openai',referrer:'mimofont',messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:b64}}]}]})
+      body:JSON.stringify({model:'openai',referrer:'mimofont',messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:b64,detail:'low'}}]}]})
     })
     .then(function(resp){
       if(!resp.ok)throw new Error('API error: '+resp.status);
@@ -325,7 +325,7 @@ function extractFonts(html){
   return fonts.length?fonts:[{name:'System Default',role:'body',source:'fallback'}];
 }
 async function callMiMo(prompt,imgB64){
-  const msgs=[{role:'user',content:imgB64?[{type:'text',text:prompt},{type:'image_url',image_url:{url:imgB64}}]:prompt}];
+  const msgs=[{role:'user',content:imgB64?[{type:'text',text:prompt},{type:'image_url',image_url:{url:imgB64,detail:'low'}}]:prompt}];
   const resp=await fetch('https://text.pollinations.ai/openai?referrer=mimofont',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'openai',messages:msgs,referrer:'mimofont'}),signal:(typeof AbortSignal.timeout==='function'?AbortSignal.timeout(60000):(function(){var c=new AbortController();setTimeout(function(){c.abort()},60000);return c.signal})())});
   const data=await resp.json();
   const c=data.choices?.[0]?.message?.content||'';
@@ -335,25 +335,27 @@ async function callMiMo(prompt,imgB64){
 }
 function render(data){
   document.getElementById('loading').classList.remove('on');
-  document.getElementById('results').classList.add('on');
-  const s=data.scores||{};
-  // Normalize scores to 0-100 scale
-  ['pairing','readability','accessibility','overall'].forEach(k=>{if(s[k]!==undefined&&s[k]<=10)s[k]=s[k]*10});
-  const o=s.overall||0,fonts=data.fonts||[],alts=data.alternatives||[];
-  const ring=document.getElementById('scoreRing');
-  ring.style.strokeDashoffset=264-(o/100)*264;
-  ring.classList.remove('good','warn','bad');ring.classList.add(o>=80?'good':o>=60?'warn':'bad');
-  document.getElementById('scoreVal').textContent=o;
-  const ge=document.getElementById('scoreGrade');
-  let g,gc;if(o>=85){g=t('excellent');gc='grade-excellent'}else if(o>=70){g=t('good');gc='grade-good'}else if(o>=50){g=t('fair');gc='grade-fair'}else{g=t('poor');gc='grade-poor'}
-  ge.textContent=g;ge.className='score-grade '+gc;
-  document.getElementById('subScores').innerHTML=['pairing','readability','accessibility'].map(k=>'<div class="sub-score"><div class="val" style="color:'+(s[k]>=80?'var(--good)':s[k]>=60?'var(--hydro)':'var(--bad)')+'">'+(s[k]||'--')+'</div><div class="lbl">'+t(k==='pairing'?'ph':k==='readability'?'rd':'ac')+'</div></div>').join('');
-  document.getElementById('fontCards').innerHTML=fonts.map(f=>'<div class="font-card"><div class="preview" style="font-family:\''+f.name+'\',serif">Aa Bb</div><div class="name">'+f.name+'</div><div class="role">'+(f.role||'')+'</div></div>').join('');
-  document.getElementById('pairingText').textContent=data.pairing_analysis||'--';
-  document.getElementById('readabilityText').textContent=data.readability_analysis||'--';
-  document.getElementById('a11yText').textContent=data.accessibility_analysis||'--';
-  document.getElementById('altCards').innerHTML=alts.map(a=>'<div class="alt-card"><h4>Replace <strong>'+a.replace+'</strong> with <strong style="color:var(--good)">'+a.with+'</strong></h4><div class="reason">'+(a.reason||'')+'</div><div class="preview-text" style="font-family:\''+a.with+'\',sans-serif">The quick brown fox jumps over the lazy dog.</div><div class="meta">Available on Google Fonts</div></div>').join('');
-  setTimeout(()=>document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'}),300);
+  var res=document.getElementById('results');
+  res.classList.add('on');
+  // Restore innerHTML if it was replaced by err()
+  if(!document.getElementById('scoreRing')){
+    res.innerHTML='<div class="results-grid reveal visible"><div class="score-card"><div class="score-ring"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="42"/><circle class="fg" id="scoreRing" cx="50" cy="50" r="42" stroke-dasharray="264" stroke-dashoffset="264"/></svg><div class="score-num"><span class="val" id="scoreVal">--</span><span class="lbl">SCORE</span></div></div><div class="score-grade" id="scoreGrade"></div><div class="sub-scores" id="subScores"></div></div><div class="analysis-panel"><h3>Detected Fonts</h3><div class="font-cards" id="fontCards"></div><div class="analysis-section"><h4>Pairing Harmony</h4><div class="analysis-text" id="pairingText"></div></div><div class="analysis-section"><h4>Readability</h4><div class="analysis-text" id="readabilityText"></div></div><div class="analysis-section"><h4>Accessibility</h4><div class="analysis-text" id="a11yText"></div></div></div></div><div class="reveal visible"><h3 style="margin:32px 0 16px">Better Alternatives</h3><div class="alt-cards" id="altCards"></div></div>';
+  }
+  var s=data.scores||{};
+  ['pairing','readability','accessibility','overall'].forEach(function(k){if(s[k]!==undefined&&s[k]<=10)s[k]=s[k]*10});
+  var o=s.overall||0,fonts=data.fonts||[],alts=data.alternatives||[];
+  var ring=document.getElementById('scoreRing');
+  if(ring){ring.style.strokeDashoffset=264-(o/100)*264;ring.classList.remove('good','warn','bad');ring.classList.add(o>=80?'good':o>=60?'warn':'bad');}
+  var sv=document.getElementById('scoreVal');if(sv)sv.textContent=o;
+  var ge=document.getElementById('scoreGrade');
+  if(ge){var g,gc;if(o>=85){g=t('excellent');gc='grade-excellent'}else if(o>=70){g=t('good');gc='grade-good'}else if(o>=50){g=t('fair');gc='grade-fair'}else{g=t('poor');gc='grade-poor'}ge.textContent=g;ge.className='score-grade '+gc;}
+  var ss=document.getElementById('subScores');if(ss)ss.innerHTML=['pairing','readability','accessibility'].map(function(k){return '<div class="sub-score"><div class="val" style="color:'+(s[k]>=80?'var(--good)':s[k]>=60?'var(--hydro)':'var(--bad)')+'">'+(s[k]||'--')+'</div><div class="lbl">'+t(k==='pairing'?'ph':k==='readability'?'rd':'ac')+'</div></div>'}).join('');
+  var fc=document.getElementById('fontCards');if(fc)fc.innerHTML=fonts.map(function(f){return '<div class="font-card"><div class="preview" style="font-family:\''+f.name+'\',serif">Aa Bb</div><div class="name">'+f.name+'</div><div class="role">'+(f.role||'')+'</div></div>'}).join('');
+  var pt=document.getElementById('pairingText');if(pt)pt.textContent=data.pairing_analysis||'--';
+  var rt=document.getElementById('readabilityText');if(rt)rt.textContent=data.readability_analysis||'--';
+  var at=document.getElementById('a11yText');if(at)at.textContent=data.accessibility_analysis||'--';
+  var ac=document.getElementById('altCards');if(ac)ac.innerHTML=alts.map(function(a){return '<div class="alt-card"><h4>Replace <strong>'+a.replace+'</strong> with <strong style="color:var(--good)">'+a.with+'</strong></h4><div class="reason">'+(a.reason||'')+'</div><div class="preview-text" style="font-family:\''+a.with+'\',sans-serif">The quick brown fox jumps over the lazy dog.</div><div class="meta">Available on Google Fonts</div></div>'}).join('');
+  setTimeout(function(){res.scrollIntoView({behavior:'smooth',block:'start'})},300);
 }
 function showLoad(step){document.getElementById('loading').classList.add('on');document.getElementById('results').classList.remove('on');document.getElementById('loadingStep').textContent=step||''}
 function updateStep(s){document.getElementById('loadingStep').textContent=s}
