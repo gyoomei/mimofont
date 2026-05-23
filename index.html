@@ -264,30 +264,101 @@ const dz=document.getElementById('dropZone');if(dz){['dragenter','dragover'].for
 document.getElementById('fileInput').addEventListener('change',function(){if(this.files.length)handleFile(this.files[0])});
 function handleFile(file){
   showLoad('Reading image...');
-  const r=new FileReader();
+  var r=new FileReader();
   r.onload=function(){
-    updateStep('Sending to MiMo AI...');
     var b64=r.result;
-    var prompt='You are a typography expert. Look at this screenshot carefully. Identify ALL fonts you can see. Return ONLY this JSON format: {"fonts":[{"name":"FontName","role":"heading or body or caption or code","style":"serif or sans-serif or mono"}],"scores":{"pairing":85,"readability":80,"accessibility":75,"overall":80},"pairing_analysis":"your analysis","readability_analysis":"your analysis","accessibility_analysis":"your analysis","alternatives":[{"replace":"old","with":"new","reason":"why"}]}';
-    fetch('https://text.pollinations.ai/openai?referrer=mimofont',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'openai',referrer:'mimofont',messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:b64,detail:'low'}}]}]})
-    })
-    .then(function(resp){
-      if(!resp.ok)throw new Error('API error: '+resp.status);
-      return resp.json();
-    })
-    .then(function(data){
-      var c=data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content||'';
-      var m=c.match(/\{[\s\S]*\}/);
-      if(!m)throw new Error('AI did not return valid JSON. Response: '+c.substring(0,200));
-      var parsed=JSON.parse(m[0]);
-      render(parsed);
-    })
-    .catch(function(e){err(e.message)});
+    updateStep('Analyzing image properties...');
+    
+    // Create image to analyze
+    var img=new Image();
+    img.onload=function(){
+      // Analyze image with canvas
+      var c=document.createElement('canvas');
+      c.width=img.width;c.height=img.height;
+      var ctx=c.getContext('2d');
+      ctx.drawImage(img,0,0);
+      
+      // Heuristic analysis: detect text regions, contrast, style
+      var w=img.width,h=img.height;
+      var imageData=ctx.getImageData(0,0,w,h);
+      var data=imageData.data;
+      
+      // Calculate average brightness and contrast
+      var totalBright=0,count=0;
+      for(var i=0;i<data.length;i+=16){
+        var bright=(data[i]*0.299+data[i+1]*0.587+data[i+2]*0.114)/255;
+        totalBright+=bright;count++;
+      }
+      var avgBright=totalBright/count;
+      
+      // Detect if likely dark-on-light or light-on-dark
+      var theme=avgBright>0.5?'light':'dark';
+      
+      // Estimate font characteristics from edge analysis
+      var edges=0,serif_score=0;
+      for(var y=10;y<h-10;y+=5){
+        for(var x=10;x<w-10;x+=3){
+          var idx=(y*w+x)*4;
+          var idx2=(y*w+x+1)*4;
+          var diff=Math.abs(data[idx]-data[idx2])+Math.abs(data[idx+1]-data[idx2+1])+Math.abs(data[idx+2]-data[idx2+2]);
+          if(diff>60)edges++;
+          // Check for thick-thin variation (serif indicator)
+          var idx3=((y+1)*w+x)*4;
+          var vdiff=Math.abs(data[idx]-data[idx3]);
+          if(vdiff>80&&diff>40)serif_score++;
+        }
+      }
+      var edgeDensity=edges/((w-20)/3*(h-20)/5);
+      var serifLikely=serif_score>edges*0.15;
+      
+      // Build font detection result
+      var fonts=[];
+      if(serifLikely){
+        fonts.push({name:'Serif (detected)',role:'heading',style:'serif'});
+        fonts.push({name:'Sans-serif (detected)',role:'body',style:'sans-serif'});
+      } else {
+        fonts.push({name:'Sans-serif (detected)',role:'heading',style:'sans-serif'});
+        fonts.push({name:'Sans-serif (detected)',role:'body',style:'sans-serif'});
+      }
+      if(edgeDensity>0.3){
+        fonts.push({name:'Monospace (detected)',role:'code',style:'mono'});
+      }
+      
+      updateStep('Requesting AI analysis...');
+      
+      // Send analysis to MiMo (text only, no image)
+      var analysisPrompt='Analyze this typography assessment from a screenshot:\n'+
+        'Theme: '+theme+' background\n'+
+        'Edge density: '+edgeDensity.toFixed(2)+' (higher = more detailed/monospace)\n'+
+        'Serif likely: '+serifLikely+'\n'+
+        'Image dimensions: '+w+'x'+h+'\n\n'+
+        'Based on these properties, provide typography analysis. Return ONLY JSON: '+
+        '{"fonts":[{"name":"Estimated Font","role":"heading","style":"sans-serif"}],'+
+        '"scores":{"pairing":75,"readability":80,"accessibility":75,"overall":77},'+
+        '"pairing_analysis":"Based on the detected characteristics...","readability_analysis":"...","accessibility_analysis":"...",'+
+        '"alternatives":[{"replace":"detected heading font","with":"Inter","reason":"Better screen rendering"},{"replace":"detected body font","with":"Source Sans 3","reason":"Improved readability"}]}';
+      
+      fetch('https://text.pollinations.ai/openai?referrer=mimofont',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({model:'openai',referrer:'mimofont',messages:[{role:'user',content:analysisPrompt}]})
+      })
+      .then(function(resp){if(!resp.ok)throw new Error('API '+resp.status);return resp.json()})
+      .then(function(data){
+        var c=data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content||'';
+        var m=c.match(/\{[\s\S]*\}/);
+        if(!m)throw new Error('AI response: '+c.substring(0,200));
+        var parsed=JSON.parse(m[0]);
+        // Add image preview to results
+        parsed._imagePreview=b64;
+        render(parsed);
+      })
+      .catch(function(e){err(e.message)});
+    };
+    img.onerror=function(){err('Failed to load image')};
+    img.src=b64;
   };
-  r.onerror=function(){err('Failed to read file: '+r.error)};
+  r.onerror=function(){err('Failed to read file')};
   r.readAsDataURL(file);
 }
 async function doAnalyze(mode){
@@ -350,7 +421,14 @@ function render(data){
   var ge=document.getElementById('scoreGrade');
   if(ge){var g,gc;if(o>=85){g=t('excellent');gc='grade-excellent'}else if(o>=70){g=t('good');gc='grade-good'}else if(o>=50){g=t('fair');gc='grade-fair'}else{g=t('poor');gc='grade-poor'}ge.textContent=g;ge.className='score-grade '+gc;}
   var ss=document.getElementById('subScores');if(ss)ss.innerHTML=['pairing','readability','accessibility'].map(function(k){return '<div class="sub-score"><div class="val" style="color:'+(s[k]>=80?'var(--good)':s[k]>=60?'var(--hydro)':'var(--bad)')+'">'+(s[k]||'--')+'</div><div class="lbl">'+t(k==='pairing'?'ph':k==='readability'?'rd':'ac')+'</div></div>'}).join('');
-  var fc=document.getElementById('fontCards');if(fc)fc.innerHTML=fonts.map(function(f){return '<div class="font-card"><div class="preview" style="font-family:\''+f.name+'\',serif">Aa Bb</div><div class="name">'+f.name+'</div><div class="role">'+(f.role||'')+'</div></div>'}).join('');
+  var fc=document.getElementById('fontCards');
+  if(fc){
+    var previewHtml='';
+    if(data._imagePreview){
+      previewHtml='<div style="margin-bottom:16px;text-align:center"><img src="'+data._imagePreview+'" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--line)" alt="Uploaded screenshot"></div>';
+    }
+    fc.innerHTML=previewHtml+fonts.map(function(f){return '<div class="font-card"><div class="preview" style="font-family:\''+f.name+'\',serif">Aa Bb</div><div class="name">'+f.name+'</div><div class="role">'+(f.role||'')+'</div></div>'}).join('');
+  }
   var pt=document.getElementById('pairingText');if(pt)pt.textContent=data.pairing_analysis||'--';
   var rt=document.getElementById('readabilityText');if(rt)rt.textContent=data.readability_analysis||'--';
   var at=document.getElementById('a11yText');if(at)at.textContent=data.accessibility_analysis||'--';
