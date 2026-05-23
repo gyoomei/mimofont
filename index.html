@@ -273,7 +273,7 @@ async function doAnalyze(mode){
       const fonts=extractFonts(html);
       updateStep('Analyzing with MiMo...');
       const fl=fonts.map(f=>f.role+': '+f.name+' ('+f.source+')').join('\n');
-      const prompt='You are a typography expert. Fonts detected from '+url+':\n'+fl+'\n\nAnalyze: pairing harmony (0-100), readability (0-100), accessibility (0-100). Return JSON only: {"fonts":[{"name":"...","role":"...","style":"serif|sans-serif|mono"}],"scores":{"pairing":N,"readability":N,"accessibility":N,"overall":N},"pairing_analysis":"...","readability_analysis":"...","accessibility_analysis":"...","alternatives":[{"replace":"...","with":"...","reason":"..."}]}';
+      const prompt='You are a typography expert. Fonts detected from '+url+':\n'+fl+'\n\nAnalyze: pairing harmony (score 0-100 where 100=perfect), readability (score 0-100), accessibility (score 0-100). Return JSON only: {"fonts":[{"name":"...","role":"...","style":"serif|sans-serif|mono"}],"scores":{"pairing":N,"readability":N,"accessibility":N,"overall":N} (all scores 0-100),"pairing_analysis":"...","readability_analysis":"...","accessibility_analysis":"...","alternatives":[{"replace":"...","with":"...","reason":"..."}]}';
       const res=await callMiMo(prompt);render(res);
     }catch(e){err(e.message)}
   }else if(mode==='manual'){
@@ -281,7 +281,7 @@ async function doAnalyze(mode){
     if(!raw)return;showLoad('Analyzing fonts...');
     try{
       const fonts=raw.split(/[\n,]/).map(s=>s.trim()).filter(Boolean).map(s=>{const p=s.split(':').map(x=>x.trim());return p[1]?p[0]+': '+p[1]:s});
-      const prompt='You are a typography expert. Analyze these fonts:\n'+fonts.join('\n')+'\n\nReturn JSON only: {"fonts":[{"name":"...","role":"heading|body|code","style":"serif|sans-serif|mono"}],"scores":{"pairing":N,"readability":N,"accessibility":N,"overall":N},"pairing_analysis":"...","readability_analysis":"...","accessibility_analysis":"...","alternatives":[{"replace":"...","with":"...","reason":"..."}]}';
+      const prompt='You are a typography expert. Analyze these fonts:\n'+fonts.join('\n')+'\n\nReturn JSON only: {"fonts":[{"name":"...","role":"heading|body|code","style":"serif|sans-serif|mono"}],"scores":{"pairing":N,"readability":N,"accessibility":N,"overall":N} (all scores 0-100),"pairing_analysis":"...","readability_analysis":"...","accessibility_analysis":"...","alternatives":[{"replace":"...","with":"...","reason":"..."}]}';
       const res=await callMiMo(prompt);render(res);
     }catch(e){err(e.message)}
   }
@@ -309,7 +309,10 @@ async function callMiMo(prompt,imgB64){
 function render(data){
   document.getElementById('loading').classList.remove('on');
   document.getElementById('results').classList.add('on');
-  const s=data.scores||{},o=s.overall||0,fonts=data.fonts||[],alts=data.alternatives||[];
+  const s=data.scores||{};
+  // Normalize scores to 0-100 scale
+  ['pairing','readability','accessibility','overall'].forEach(k=>{if(s[k]!==undefined&&s[k]<=10)s[k]=s[k]*10});
+  const o=s.overall||0,fonts=data.fonts||[],alts=data.alternatives||[];
   const ring=document.getElementById('scoreRing');
   ring.style.strokeDashoffset=264-(o/100)*264;
   ring.classList.remove('good','warn','bad');ring.classList.add(o>=80?'good':o>=60?'warn':'bad');
