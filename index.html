@@ -262,13 +262,40 @@ function toggleTheme(){theme=theme==='dark'?'light':'dark';document.documentElem
 function switchTab(tab){['url','upload','manual'].forEach(x=>{document.getElementById('tab-'+x).style.display=x===tab?'':'none'});document.querySelectorAll('.input-tab').forEach((b,i)=>b.classList.toggle('active',['url','upload','manual'][i]===tab))}
 const dz=document.getElementById('dropZone');if(dz){['dragenter','dragover'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.add('drag-over')}));['dragleave','drop'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.remove('drag-over')}));dz.addEventListener('drop',ev=>{if(ev.dataTransfer.files.length)handleFile(ev.dataTransfer.files[0])})}
 document.getElementById('fileInput').addEventListener('change',function(){if(this.files.length)handleFile(this.files[0])});
-function handleFile(file){const r=new FileReader();r.onload=async()=>{showLoad('Detecting fonts from image...');try{const res=await callMiMo("You are a typography expert. Analyze this screenshot. Identify all visible fonts. Return JSON: {\"fonts\":[{\"name\":\"...\",\"role\":\"heading|body|caption|code\",\"style\":\"serif|sans-serif|mono\"}],\"scores\":{\"pairing\":N,\"readability\":N,\"accessibility\":N,\"overall\":N},\"pairing_analysis\":\"...\",\"readability_analysis\":\"...\",\"accessibility_analysis\":\"...\",\"alternatives\":[{\"replace\":\"...\",\"with\":\"...\",\"reason\":\"...\"}]}",r.result);render(res)}catch(e){err(e.message)}};r.readAsDataURL(file)}
+function handleFile(file){
+  showLoad('Reading image...');
+  const r=new FileReader();
+  r.onload=function(){
+    updateStep('Sending to MiMo AI...');
+    var b64=r.result;
+    var prompt='You are a typography expert. Analyze this screenshot and identify ALL visible fonts. For each font give: name, role (heading/body/caption/code), style (serif/sans-serif/mono). Score pairing, readability, accessibility, overall (0-100 each). Suggest 2-3 better alternatives. Return ONLY valid JSON: {"fonts":[{"name":"...","role":"heading","style":"sans-serif"}],"scores":{"pairing":80,"readability":75,"accessibility":85,"overall":80},"pairing_analysis":"...","readability_analysis":"...","accessibility_analysis":"...","alternatives":[{"replace":"...","with":"...","reason":"..."}]}';
+    fetch('https://text.pollinations.ai/openai?referrer=mimofont',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'openai',referrer:'mimofont',messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:b64}}]}]})
+    })
+    .then(function(resp){
+      if(!resp.ok)throw new Error('API error: '+resp.status);
+      return resp.json();
+    })
+    .then(function(data){
+      var c=data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content||'';
+      var m=c.match(/\{[\s\S]*\}/);
+      if(!m)throw new Error('AI did not return valid JSON. Response: '+c.substring(0,200));
+      var parsed=JSON.parse(m[0]);
+      render(parsed);
+    })
+    .catch(function(e){err(e.message)});
+  };
+  r.onerror=function(){err('Failed to read file: '+r.error)};
+  r.readAsDataURL(file);
+},\"pairing_analysis\":\"...\",\"readability_analysis\":\"...\",\"accessibility_analysis\":\"...\",\"alternatives\":[{\"replace\":\"...\",\"with\":\"...\",\"reason\":\"...\"}]}",r.result);render(res)}catch(e){err(e.message)}};r.readAsDataURL(file)}
 async function doAnalyze(mode){
   if(mode==='url'){
     const url=document.getElementById('urlInput').value.trim();
     if(!url)return;showLoad('Fetching page styles...');
     try{
-      const resp=await fetch('https://corsproxy.io/?url='+encodeURIComponent(url),{signal:AbortSignal.timeout(12000)});
+      const resp=await fetch('https://corsproxy.io/?url='+encodeURIComponent(url),{signal:(typeof AbortSignal.timeout==='function'?AbortSignal.timeout(12000):(function(){var c=new AbortController();setTimeout(function(){c.abort()},12000);return c.signal})())});
       const html=await resp.text();
       const fonts=extractFonts(html);
       updateStep('Analyzing with MiMo...');
@@ -299,7 +326,7 @@ function extractFonts(html){
 }
 async function callMiMo(prompt,imgB64){
   const msgs=[{role:'user',content:imgB64?[{type:'text',text:prompt},{type:'image_url',image_url:{url:imgB64}}]:prompt}];
-  const resp=await fetch('https://text.pollinations.ai/openai?referrer=mimofont',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'openai',messages:msgs,referrer:'mimofont'}),signal:AbortSignal.timeout(60000)});
+  const resp=await fetch('https://text.pollinations.ai/openai?referrer=mimofont',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'openai',messages:msgs,referrer:'mimofont'}),signal:(typeof AbortSignal.timeout==='function'?AbortSignal.timeout(60000):(function(){var c=new AbortController();setTimeout(function(){c.abort()},60000);return c.signal})())});
   const data=await resp.json();
   const c=data.choices?.[0]?.message?.content||'';
   const m=c.match(/\{[\s\S]*\}/);
@@ -330,7 +357,13 @@ function render(data){
 }
 function showLoad(step){document.getElementById('loading').classList.add('on');document.getElementById('results').classList.remove('on');document.getElementById('loadingStep').textContent=step||''}
 function updateStep(s){document.getElementById('loadingStep').textContent=s}
-function err(msg){document.getElementById('loading').classList.remove('on');console.error(msg);alert('Error: '+msg)}
+function err(msg){
+  document.getElementById('loading').classList.remove('on');
+  console.error('MiMoFont error:',msg);
+  var el=document.getElementById('results');
+  el.classList.add('on');
+  el.innerHTML='<div style="text-align:center;padding:60px 20px"><div style="font-size:3rem;margin-bottom:16px">&#9888;&#65039;</div><h3 style="color:var(--bad);margin-bottom:12px">Analysis Failed</h3><p style="color:var(--muted);max-width:500px;margin:0 auto;line-height:1.7">'+msg+'</p><button onclick="location.reload()" style="margin-top:20px;background:var(--hydro);border:none;color:#fff;padding:12px 24px;border-radius:8px;cursor:pointer;font-weight:600">Try Again</button></div>';
+}
 // Stars
 (function(){const sf=document.getElementById('starfield');for(let i=0;i<30;i++){const s=document.createElement('div');s.className='star';s.style.cssText='left:'+Math.random()*100+'%;top:'+Math.random()*100+'%;--dur:'+(3+Math.random()*5)+'s;background:rgba('+(Math.random()>.5?'240,215,140':'79,199,247')+','+(0.3+Math.random()*0.4)+')';sf.appendChild(s)}})();
 // Reveal
