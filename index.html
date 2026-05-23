@@ -289,7 +289,7 @@ function handleFile(file){
   };
   r.onerror=function(){err('Failed to read file: '+r.error)};
   r.readAsDataURL(file);
-},\"pairing_analysis\":\"...\",\"readability_analysis\":\"...\",\"accessibility_analysis\":\"...\",\"alternatives\":[{\"replace\":\"...\",\"with\":\"...\",\"reason\":\"...\"}]}",r.result);render(res)}catch(e){err(e.message)}};r.readAsDataURL(file)}
+}
 async function doAnalyze(mode){
   if(mode==='url'){
     const url=document.getElementById('urlInput').value.trim();
